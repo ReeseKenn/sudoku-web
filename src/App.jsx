@@ -19,10 +19,47 @@ class App extends React.Component {
 
   // TODO：解数独
   solveSudoku = async () => {
+    setTimeout(()=>{
+      console.log(1)
+    },500)
     const { sudoku } = this.state
     // 判断填入的数字是否有效，参考上面的代码，这里不再重复
     const isValid = (row, col, num) => {
+      const numString = num.toString()
+      // 判断行里是否重复
+      for (let i = 0; i < 9; i++) {
+        if (sudoku[row][i] === numString) {
+          return false
+        }
+      }
+      // 判断列里是否重复
+      for (let i = 0; i < 9; i++) {
+        if (sudoku[i][col] === numString) {
+          return false
+        }
+      }
+      // 判断九宫格里是否重复
+      const startRow = parseInt(row / 3) * 3
+      const startCol = parseInt(col / 3) * 3
+      for (let i = startRow; i < startRow + 3; i++) {
+        for (let j = startCol; j < startCol + 3; j++) {
+          if (sudoku[i][j] === numString) {
+            return false
+          }
+        }
+      }
       return true
+    }
+    // 脱离事件流，调用 setState
+    const setSudoku = async (row, col, value) => {
+      sudoku[row][col] = value
+      return new Promise(resolve => {
+        setTimeout(() => {
+          this.setState({
+            sudoku
+          }, () => resolve())
+        },500)
+      })
     }
     // 递归+回溯的方式进行解题
     const solve = async (row, col) => {
@@ -34,26 +71,23 @@ class App extends React.Component {
       if (sudoku[row][col] !== '.') {
         return solve(row, col + 1)
       }
-      for (let num = 1; num <= 9; num++) {
-        if (!isValid(row, col, num)) {
-          continue
-        }
-
-        sudoku[row][col] = num.toString()
-        this.setState({ sudoku }) // 填了格子之后，需要同步到 state
-
-        if (solve(row, col + 1)) {
-          return true
-        }
-
-        sudoku[row][col] = '.'
-        this.setState({ sudoku }) // 填了格子之后，需要同步到 state
+    for (let num = 1; num <= 9; num++) {
+      if (!isValid(row, col, num)) {
+        continue
       }
+
+      await setSudoku(row, col, num.toString())
+
+      if (await solve(row, col + 1)) {
+        return true
+      }
+
+      await setSudoku(row, col, '.')
+    }
       return false
     }
     // 进行解题
     solve(0, 0)
-    console.log(sudoku)
   }
 
   render() {
@@ -71,7 +105,7 @@ class App extends React.Component {
               ))}
             </div>
           ))}
-          <button onClick={this.solveSudoku}>开始做题</button>
+          <div className="row"><button onClick={this.solveSudoku}>开始做题</button></div>
         </div>
       </div>
     );
